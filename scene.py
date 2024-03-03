@@ -1,5 +1,6 @@
 from manim import *
 import random
+import numpy as np
 
 HOME = "C:\manim\Manim_7_July\Projects\\assets\Images"
 HOME2 = "C:\manim\Manim_7_July\Projects\\assets\SVG_Images"
@@ -159,317 +160,470 @@ class Slide6(Scene):
         self.play(TransformMatchingTex(entropy, entropy2))
         self.wait()
 
-class RandomNumbers:
+class Slide7(Scene):
     def construct(self):
+        originaleq = MathTex("H(", "X", ") =", r"\sum_{x \in X}", "P(x)", "log(", "P(x)", ")")
+        probseq = MathTex("H(", r"p_1, \dots, p_n", ") =", r"\sum_{i \in [1,n]}", "p_i", "log(", "p_i", ")")
+        probveceq = MathTex("H(", r"\vec{p}", ") =", r"\sum_{p \in \vec{p}}", "p", "log(", "p", ")")
 
-        numbers = VGroup()
-        for x in range(28):
-            num = DecimalNumber()
-            numbers.add(num)
+        self.add(originaleq)
+        self.play(TransformMatchingTex(originaleq, probseq))
+        self.wait()
+        self.play(TransformMatchingTex(probseq, probveceq))
+        self.wait()
 
-        def randomize_numbers(numbers):
-            for num in numbers:
-                value = random.uniform(0, 1)
-                num.set_value(value)
-                if value > 0.1:
-                    num.set_color(GREEN)
-                else:
-                    num.set_color(RED)
+class Slide8Eq(Scene):
+    def construct(self):
+        X = MathTex(r"X\sim\begin{cases} "
+                        r"p \quad\quad x \leq pivot\\"
+                        r"1-p \quad x > pivot\\"
+                    r"\end{cases}")
+        self.add(X.shift(2*UP))
+        staticX = X.copy()
+        self.wait()
+        H = MathTex("H(X) = ", "-", "p", "log_2", "p", "-", "(", "1-p", ")", "log_2", "(", "1-p", ")")
+        self.add((staticX))
+        self.play(TransformMatchingShapes(X, H))
 
-        randomize_numbers(numbers)
 
-        numbers.set(width=0.38)
-        numbers.arrange(RIGHT, buff=0.1)
-        numbers.to_edge(UR)
+        self.wait()
 
-        def get_results(numbers):
-            results = VGroup()
-            for num in numbers:
-                if num.get_value() > 0.1:
-                    result = (
-                        SVGMobject(f"{HOME2}\\green_tick.svg")
-                        .set_color(GREEN_C)
-                        .set(width=0.3)
-                    )
-                else:
-                    result = (
-                        SVGMobject(f"{HOME2}\\cross.svg")
-                        .set_color(RED_C)
-                        .set(width=0.3)
-                    )
+class Slide8Graph(Scene):
+    def construct(self):
+        axes = Axes(x_range=[0, 1.4, 0.5], y_range=[0, 1.4, 0.5], x_length=5, y_length=5, axis_config= {"include_tip": False, "color": GREEN}, color="Green").add_coordinates()
+        axes_labels = axes.get_axis_labels(x_label="p", y_label="H(X)")
 
-                result.next_to(num, DOWN, buff=0.2)
-                results.add(result)
-            return results
+        def H(p):
+            if (p == 0) or (p == 1):
+                return 0
+            return p*np.log2((1-p)/p)-np.log2(1 - p)
 
-        for k in range(10):
-            self.play(UpdateFromFunc(numbers, randomize_numbers))
-            self.wait()
-            result = get_results(numbers)
-            self.play(Write(result))
-            self.wait()
+        graph = axes.plot(H, x_range=[0, 1], color=RED)
 
-            k = 0
-            for num in numbers:
-                if num.get_value() > 0.1:
-                    k += 1
-            total = k
+        l = Line((-0.7, 1.1, 0), (-0.7, -2.5, 0))
+        l2 = Line((-2.5, 1.1, 0), (-0.7, 1.1, 0))
+        dashed = DashedVMobject(l)
+        dashed2 = DashedVMobject(l2)
 
-            box = SurroundingRectangle(result)
-            self.play(Create(box))
-            self.play(FadeOut(box), FadeOut(result))
+
+        self.play(DrawBorderThenFill(axes), Write(axes_labels))
+        self.play(Create(graph))
+        self.play(Create(dashed2))
+        self.play(Create(dashed))
+
+        self.wait()
+
+class Slide12(Scene):
+    def construct(self):
+        lotp = Tex("Law of Total Probability").shift(UP)
+        psum = MathTex(r"\int_{a}^{b}p(x)dx", "=", "1")
+        law = VGroup(lotp, psum)
+
+        self.play(Create(law))
+
+        law.generate_target()
+        law.target.shift(2.5*UP).scale(0.8)
+
+        self.play(MoveToTarget(law))
+
+        constraint = MathTex("g(x)", "=", r"\int_{a}^{b}p(x)dx", "-", "1").shift(1.5*UP + 3*RIGHT)
+        H = MathTex("H(x) =", r"\int p(x)", "ln(p(x))", "dx").shift(1.5*UP + 3*LEFT)
+        law.add(psum.copy())
+        self.play(FadeIn(H), TransformMatchingTex(psum, constraint))
+
+        sconstraint = constraint.copy()
+        law.add(constraint, H)
+        law.add(H.copy(), sconstraint)
+        lagrangian = MathTex(r"\mathbb{L}", "=", "\int p(x)", "ln(p(x))", "dx", "-", r"\lambda", r"\int_{a}^{b}p(x)dx", "-", "1").shift(UP)
+        self.play(law.animate.scale(0.8).shift(0.5*UP))
+        self.play(TransformMatchingTex(H, lagrangian), TransformMatchingTex(constraint, lagrangian))
+
+        law.add(lagrangian, lagrangian.copy())
+        differential = MathTex(r"\frac{\delta \mathbb{L}}{\delta p(x)}", "=", "ln(p(x))", "+", "1", "-", "\lambda", "=", "0").shift(0.5*UP)
+        self.play(law.animate.scale(0.8).shift(0.5*UP))
+        self.play(TransformMatchingTex(lagrangian, differential))
+
+        law.add(differential)
+        law.add(differential.copy())
+        eq = MathTex("ln(p(x))", "=", "\lambda", "-", "1")
+        eq2 = MathTex("ln(", "p(x)", ")", "=", r"\lambda - 1")
+        self.play(law.animate.scale(0.8).shift(0.2 * UP))
+        self.play(TransformMatchingTex(differential, eq))
+        self.add(eq2)
+        self.remove(eq)
+
+        eq3 = MathTex("p(x)", "=", r"e^{\lambda - 1}")
+        self.play(TransformMatchingTex(eq2, eq3))
+
+        law.add(sconstraint.copy())
+        eq4 = MathTex("g(x)", "=", r"\int_{a}^{b}p(x)dx", "-", "1").shift(DOWN)
+        eq4a = MathTex("g(x)", "=", r"\int_{a}^{b}","p(x)", "dx", "-", "1").shift(DOWN)
+        self.play(TransformMatchingTex(sconstraint, eq4))
+        self.add(eq4a)
+        self.remove(eq4)
+        eq5 = MathTex(r"\int_{a}^{b}", "p(x)", "dx", "=", "1").shift(DOWN)
+        self.play(TransformMatchingTex(eq4a, eq5))
+        eq6 = MathTex(r"\int_{a}^{b}", r"e^{\lambda - 1}", "dx", "=", "1").shift(DOWN)
+        self.add(eq3.copy())
+        self.play(TransformMatchingTex(eq5, eq6), TransformMatchingTex(eq3, eq6))
+
+        self.add(eq6.copy())
+        eq7 = MathTex(r"e^{\lambda - 1}", "(", "b-a", ")", "=", "1").shift(2*DOWN)
+        self.play(TransformMatchingTex(eq6, eq7))
+        eq8 = MathTex(r"e^{\lambda - 1}", "=", r"\frac{1}{b-a}").shift(2*DOWN)
+        self.play(TransformMatchingTex(eq7, eq8))
+
+        self.add(eq3.copy(), eq8.copy())
+        eq9 = MathTex("p(x)", "=", r"e^{\lambda - 1}").shift(3*DOWN)
+        self.play(TransformMatchingTex(eq3, eq9))
+        eq10 = MathTex("p(x)", "=", r"\frac{1}{b-a}").shift(3*DOWN)
+        self.play(TransformMatchingTex(eq8, eq10), TransformMatchingTex(eq9, eq10))
+        self.wait()
+
+
+class Slide13(Scene):
+    def construct(self):
+        circles = []
+        for i in range(16):
+            circles.append(Circle(radius=0.2, color=BLUE, fill_opacity=1).shift(4*LEFT+i*0.5*RIGHT+2*UP))
+        circles = VGroup(*circles)
+        self.play(Create(circles))
+
+        bins = NumberLine(x_range=[0, 4, 1], length=4, include_numbers=False).shift(DOWN)
+        self.play(Create(bins))
+
+        tempcircles = VGroup()
+        for i in range(1, 5):
+            for j in range(1, 5):
+                tempcircles.add(Circle(radius=0.2, color=BLUE, fill_opacity=1).shift((1.25-i*0.5)*DOWN+(2.5-j)*LEFT))
+
+        self.play(Transform(circles, tempcircles))
+        self.wait()
+
+class Slide15(Scene):
+    def construct(self):
+        guesser = Tex("Guesser").align_on_border(UL)
+        gm = Tex("Game Master").align_on_border(UR)
+
+        word = []
+        uword = VGroup()
+        i = 0
+        for c in list("COFFEE"):
+            letter = Tex(c).scale(2).shift((2.5-i)*LEFT)
+            word.append(letter)
+            uword.add(Underline(letter))
+            i += 1
+
+        starting = VGroup(guesser, gm, uword, Underline(guesser), Underline(gm))
+
+        self.play(Create(starting))
+        self.wait(2)
+
+        #Guess: E
+        guess = Tex("E?").scale(1.5).next_to(guesser, DOWN).set_color(YELLOW)
+        ans = Tex(r"\checkmark").scale(1.5).next_to(gm, DOWN)
+        self.play(FadeIn(guess, shift=DOWN))
+        self.play(Create(ans), FadeIn(word[-1], shift=UP), FadeIn(word[-2], shift=UP))
+
+        #Guess: A
+        guess2 = Tex("A?").scale(1.5).next_to(guesser, DOWN).set_color(YELLOW)
+        ans2 = Cross(guess2).next_to(gm, DOWN)
+        self.play(TransformMatchingShapes(guess, guess2))
+        self.play(FadeOut(ans, shift=DOWN), FadeIn(ans2, shift=DOWN))
+
+        banned = VGroup(Cross(Tex("A")).shift(DOWN+3*LEFT), Tex("A").shift(DOWN+3*LEFT).set_opacity(0.5))
+        self.play(TransformMatchingShapes(guess2, banned), TransformMatchingShapes(ans2, banned))
+
+        #Guess: O
+        guess = Tex("O?").scale(1.5).next_to(guesser, DOWN).set_color(YELLOW)
+        ans = Tex(r"\checkmark").scale(1.5).next_to(gm, DOWN)
+        self.play(ChangeSpeed(FadeIn(guess, shift=DOWN), speedinfo={0: 2}))
+        self.play(ChangeSpeed(AnimationGroup(Create(ans), FadeIn(word[1], shift=UP)), speedinfo={0: 2}))
+
+        #Guess: B
+        guess2 = Tex("B?").scale(1.5).next_to(guesser, DOWN).set_color(YELLOW)
+        ans2 = Cross(guess2).next_to(gm, DOWN)
+        self.play(ChangeSpeed(FadeTransform(guess, guess2), speedinfo={0: 2}))
+        self.play(ChangeSpeed(AnimationGroup(FadeOut(ans, shift=DOWN), FadeIn(ans2, shift=DOWN)), speedinfo={0: 2}))
+
+        banned2 = VGroup(Cross(Tex("B")).next_to(banned, RIGHT), Tex("B").next_to(banned, RIGHT).set_opacity(0.5))
+        self.play(ChangeSpeed(AnimationGroup(TransformMatchingShapes(guess2, banned2), TransformMatchingShapes(ans2, banned2)), speedinfo={0: 2}))
+
+        #Guess: F
+        guess = Tex("F?").scale(1.5).next_to(guesser, DOWN).set_color(YELLOW)
+        ans = Tex(r"\checkmark").scale(1.5).next_to(gm, DOWN)
+        self.play(ChangeSpeed(FadeIn(guess, shift=DOWN), speedinfo={0: 2}))
+        self.play(ChangeSpeed(AnimationGroup(Create(ans), FadeIn(word[2], shift=UP), FadeIn(word[3], shift=UP)), speedinfo={0: 2}))
+        self.wait()
+        self.remove(guess, ans)
+
+        #Guess everything
+        lettersleft = list("DGHIJKLMNPQRSTUVWXYZ")
+        letter = banned2.copy()
+        ans3 = Cross(guess2).next_to(gm, DOWN)
+        lettermobs = [ans3]
+        for i in range(10):
+            c = lettersleft.pop(0)
+            lettermobs.append(VGroup(Cross(Tex(c)).next_to(letter, RIGHT), Tex(c).next_to(letter, RIGHT).set_opacity(0.5)))
+            letter = lettermobs[-1]
+        c = lettersleft.pop(0)
+        lettermobs.append(VGroup(Cross(Tex(c)).next_to(banned, DOWN), Tex(c).next_to(banned, DOWN).set_opacity(0.5)))
+        letter = lettermobs[-1]
+        for c in lettersleft:
+            lettermobs.append(VGroup(Cross(Tex(c)).next_to(letter, RIGHT), Tex(c).next_to(letter, RIGHT).set_opacity(0.5)))
+            letter = lettermobs[-1]
+
+
+        self.play(ChangeSpeed(Create(VGroup(*lettermobs)), speedinfo={0: 2}))
+        self.play(FadeOut(ans3), FadeIn(Tex("$>$:(").next_to(gm, DOWN)), Create(Tex(":/").next_to(guesser, DOWN)))
+
+        self.wait()
+
+class Slide16(Scene):
+    def construct(self):
+        word = []
+        uword = VGroup()
+        i = 0
+        for c in list("BINARY"):
+            letter = Tex(c).scale(2).shift((2.5 - i) * LEFT + 2*UP)
+            word.append(letter)
+            uword.add(Underline(letter))
+            i += 1
+
+        self.play(Create(uword))
+        self.wait()
+
+        lettermobs = VGroup()
+        letters = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+        c = letters.pop(0)
+        templetter = Tex(c).shift(3*LEFT)
+        cletter = templetter.copy()
+        lettermobs.add(templetter)
+        for i in range(12):
+            c = letters.pop(0)
+            templetter = Tex(c).next_to(templetter, RIGHT)
+            lettermobs.add(templetter)
+        c = letters.pop(0)
+        templetter = Tex(c).next_to(cletter, DOWN).shift(0.1*LEFT)
+        lettermobs.add(templetter)
+        for i in range(12):
+            c = letters.pop(0)
+            templetter = Tex(c).next_to(templetter, RIGHT)
+            lettermobs.add(templetter)
+
+        self.play(Create(lettermobs))
+        self.wait()
+
+        self.play(FadeIn(VGroup(*word), shift=UP))
 
         self.wait()
 
 
-def get_data_1(self):
-    w = 0.2
-    t_row1 = (
-        VGroup(
-            *[
-                SVGMobject(f"{HOME2}\\green_tick.svg").set(width=w).set_color(GREEN)
-                for i in range(10)
-            ]
-        )
-        .arrange(RIGHT, buff=0.2)
-        .to_edge(UL, buff=0.25)
-    )
-    t_row2 = (
-        VGroup(
-            *[
-                SVGMobject(f"{HOME2}\\green_tick.svg").set(width=w).set_color(GREEN)
-                for i in range(10)
-            ]
-        )
-        .arrange(RIGHT, buff=0.2)
-        .next_to(t_row1, DOWN, buff=0.25)
-    )
-    f_row1 = (
-        VGroup(
-            *[
-                SVGMobject(f"{HOME2}\\cross.svg").set(width=w).set_color(RED)
-                for i in range(10)
-            ]
-        )
-        .arrange(RIGHT, buff=0.2)
-        .next_to(t_row2, DOWN, buff=0.25)
-    )
-    f_row2 = (
-        VGroup(
-            *[
-                SVGMobject(f"{HOME2}\\cross.svg").set(width=w).set_color(RED)
-                for i in range(10)
-            ]
-        )
-        .arrange(RIGHT, buff=0.2)
-        .next_to(f_row1, DOWN, buff=0.25)
-    )
-    f_row3 = (
-        VGroup(
-            *[
-                SVGMobject(f"{HOME2}\\cross.svg").set(width=w).set_color(RED)
-                for i in range(10)
-            ]
-        )
-        .arrange(RIGHT, buff=0.2)
-        .next_to(f_row2, DOWN, buff=0.25)
-    )
-
-    result = VGroup(*t_row1, *t_row2, *f_row1, *f_row2, *f_row3)
-
-    return result
-
-
-class CentralLimitTheorem(Scene):
+class Slide20(Scene):
     def construct(self):
+        sequence = [2, 4, 6]
 
-        data = get_data_1(self)
-        axes = (
-            Axes(x_range=[0, 1.2, 0.1], y_range=[0, 2.5], x_length=10, y_length=4)
-            .to_edge(DL)
-            .shift(UP * 0.2)
-        )
+        nummobs = VGroup()
+        for i in range(len(sequence)):
+            nummobs.add(MathTex(sequence[i]).scale(2).shift((4-i)*LEFT))
 
-        labels = axes.get_axis_labels(x_label="\\hat{p}", y_label="")
+        self.play(Create(nummobs))
+        self.wait()
 
-        x_axis_nums = VGroup()
-        for i in range(11):
-            num = (
-                MathTex("\\frac{%3d}{10}" % i)
-                .scale(0.6)
-                .next_to(axes.x_axis.n2p(i / 10 + 0.05), DOWN, buff=0.1)
-            )
-            x_axis_nums.add(num)
+        qm = Tex("?").scale(2)
+        self.play(Create(qm))
+        self.wait()
 
-        sample_counter = Tex("Total samples: ").scale(0.6).to_edge(UR).shift(LEFT * 0.6)
-        total_counter = (
-            Tex("Sum of Averages: ")
-            .scale(0.6)
-            .next_to(sample_counter, DOWN, aligned_edge=LEFT, buff=0.4)
-        )
-        average_counter = (
-            MathTex("Average \\ \\hat{p}:  ")
-            .scale(0.6)
-            .next_to(total_counter, DOWN, aligned_edge=LEFT, buff=0.4)
-        )
+        EIGHT = MathTex(8).scale(2)
+        eq1 = MathTex("f(x) =", "2", "x").shift(DOWN*2)
+        self.play(FadeOut(qm, shift=DOWN), FadeIn(EIGHT, shift=DOWN), FadeIn(eq1))
+        self.wait(2)
 
+        FOURTEEN = MathTex(14).scale(2)
+        eq2 = MathTex("f(x) =", "x^3-6x^2+13", "x", "-6").shift(DOWN*2)
+        self.play(FadeOut(EIGHT, shift=DOWN), FadeIn(FOURTEEN, shift=DOWN), TransformMatchingTex(eq1, eq2))
+
+        self.wait()
+
+class Slide21(Scene):
+    def construct(self):
+        Occamrazor = Text("Occam's razor").to_edge(UP)
+        self.play(Write(Occamrazor))
+        self.play(Create(Underline(Occamrazor)))
+        definition = Tex("Entia non sunt multiplicanda praeter necessitatem").next_to(Occamrazor, DOWN).shift(DOWN)
+        self.play(Write(definition))
+        self.wait()
+        endef = Tex("The simplest explanation is usually the best one.").next_to(Occamrazor, DOWN).shift(DOWN)
+        self.play(TransformMatchingShapes(definition, endef))
+
+        self.wait()
+
+class Slide22(Scene):
+    def construct(self):
+        H1 = MathTex("H_1: f(x) =", "a", "x+", "b").to_edge(UP).set_color_by_tex("a", YELLOW).set_color_by_tex("b", YELLOW)
+        H2 = MathTex("H_2: f(x) =", "a", "x^3+", "b", "x^2+", "c", "x+", "d").next_to(H1, DOWN).set_color_by_tex("a", YELLOW).set_color_by_tex("b", YELLOW).set_color_by_tex("c", YELLOW).set_color_by_tex("d", YELLOW)
+        self.play(Create(H1), Create(H2))
+        self.wait(6)
+
+        PHGD = MathTex("P(H|D)").shift(UP)
+        PHGDE = MathTex("P(H|D)", r"= \frac{P(D|H)P(H)}{P(D)}").shift(UP)
+        self.play(Create(PHGD))
+        self.play(TransformMatchingTex(PHGD, PHGDE))
+        self.wait(6)
+
+        PHGDR = MathTex(r"\frac{P(H_1|D)}{P(H_2|D)}", "=", r"\frac{P(H_1)}{P(H_2)}\frac{P(D|H_1)}{P(D|H_2)}").shift(DOWN)
+        self.add(PHGDE.copy())
+        self.play(TransformMatchingShapes(PHGDE, PHGDR))
+
+        self.wait()
+
+class Slide23(Scene):
+    def construct(self):
+        PHGDR = MathTex(r"\frac{P(H_1|D)}{P(H_2|D)}", "=", r"\frac{P(H_1)}{P(H_2)}", r"\frac{P(D|H_1)}{P(D|H_2)}").shift(3*UP)
+        brace1 = Brace(PHGDR[2], DOWN)
+        brace1_label = brace1.get_text("Bias")
+        PHGDRWB = MathTex(r"\frac{P(H_1|D)}{P(H_2|D)}", "=", r"\frac{P(D|H_1)}{P(D|H_2)}").shift(3*UP)
+
+        self.play(Write(PHGDR), GrowFromCenter(brace1), Write(brace1_label))
+        self.wait(10)
+        self.play(TransformMatchingTex(PHGDR, PHGDRWB), FadeOut(brace1), FadeOut(brace1_label))
+
+        PDGH = MathTex("P(D|H)")
+        self.play(Write(PDGH))
+        self.wait(2)
+
+        PDGH.generate_target()
+        PDGH.target.shift(4*RIGHT+UP)
+        self.play(MoveToTarget(PDGH))
+        self.wait(2)
+
+        #a1
+        a1line = NumberLine(
+            x_range=[-20, 20],
+            length=3,
+            color=BLUE,
+            include_numbers=False, numbers_to_include=[-20,20]).to_edge(LEFT).shift(UP)
+        a1_parameter = ValueTracker(0)
+        labela1 = MathTex("a = ", "{:.0f}".format(a1_parameter.get_value())).next_to(a1line, UP)
+        a1_marker = Dot(color=YELLOW).add_updater(
+            lambda mob: mob.move_to(a1line.number_to_point(a1_parameter.get_value())), ).update()
+
+        #b1
+        b1_parameter = ValueTracker(1)
+        labelb1 = MathTex("b = ", "{:.0f}".format(b1_parameter.get_value())).next_to(a1line, DOWN)
+        b1line = NumberLine(
+            x_range=[-20, 20],
+            length=3,
+            color=BLUE,
+            include_numbers=False, numbers_to_include=[-20, 20]).next_to(labelb1, DOWN)
+
+        b1_marker = Dot(color=RED).add_updater(
+            lambda mob: mob.move_to(b1line.number_to_point(b1_parameter.get_value())), ).update()
+
+        #a2
+        a2line = NumberLine(
+            x_range=[-20, 20],
+            length=3,
+            color=BLUE,
+            include_numbers=False, numbers_to_include=[-20,20]).next_to(a1line, RIGHT)
+        a2_parameter = ValueTracker(2)
+        labela2 = MathTex("a = ", "{:.0f}".format(a2_parameter.get_value())).next_to(a2line, UP)
+        a2_marker = Dot(color=GREEN).add_updater(
+            lambda mob: mob.move_to(a2line.number_to_point(a2_parameter.get_value())), ).update()
+
+        # b2
+        b2_parameter = ValueTracker(3)
+        labelb2 = MathTex("b = ", "{:.0f}".format(b1_parameter.get_value())).next_to(a2line, DOWN)
+        b2line = NumberLine(
+            x_range=[-20, 20],
+            length=3,
+            color=BLUE,
+            include_numbers=False, numbers_to_include=[-20, 20]).next_to(labelb2, DOWN)
+
+        b2_marker = Dot(color=ORANGE).add_updater(
+            lambda mob: mob.move_to(b2line.number_to_point(b2_parameter.get_value())), ).update()
+
+        # c
+        c_parameter = ValueTracker(4)
+        labelc = MathTex("c = ", "{:.0f}".format(c_parameter.get_value())).next_to(b2line, DOWN)
+        cline = NumberLine(
+            x_range=[-20, 20],
+            length=3,
+            color=BLUE,
+            include_numbers=False, numbers_to_include=[-20, 20]).next_to(labelc, DOWN)
+
+        c_marker = Dot(color=PURPLE).add_updater(
+            lambda mob: mob.move_to(cline.number_to_point(c_parameter.get_value())), ).update()
+
+        # d
+        d_parameter = ValueTracker(5)
+        labeld = MathTex("d = ", "{:.0f}".format(d_parameter.get_value())).next_to(cline, DOWN)
+        dline = NumberLine(
+            x_range=[-20, 20],
+            length=3,
+            color=BLUE,
+            include_numbers=False, numbers_to_include=[-20, 20]).next_to(labeld, DOWN)
+
+        d_marker = Dot(color=PINK).add_updater(
+            lambda mob: mob.move_to(dline.number_to_point(d_parameter.get_value())), ).update()
+
+
+        self.play(DrawBorderThenFill(VGroup(a1line, b1line, a2line, b2line, cline, dline)), Create(VGroup(a1_marker, b1_marker, a2_marker, b2_marker, c_marker, d_marker)))
         self.play(
-            LaggedStart(
-                Create(data),
-                Write(VGroup(sample_counter, total_counter, average_counter)),
-                Create(axes),
-                Write(x_axis_nums),
-                run_time=4,
-                lag_ratio=1,
-            )
+            UpdateFromAlphaFunc(
+                a1_parameter,
+                lambda mob, alpha: mob.set_value(20*np.sin(alpha * 2*PI)),
+                run_time=6
+            ), UpdateFromFunc(labela1, lambda m: m.become(MathTex("a = ", "{:.0f}".format(a1_parameter.get_value())).next_to(a1line, UP))),
+            UpdateFromAlphaFunc(
+                b1_parameter,
+                lambda mob, alpha: mob.set_value(-20 * np.sin(alpha * 2 * PI)),
+                run_time=6
+            ), UpdateFromFunc(labelb1, lambda m: m.become(MathTex("b = ", "{:.0f}".format(b1_parameter.get_value())).next_to(a1line, DOWN))),
+            UpdateFromAlphaFunc(
+                a2_parameter,
+                lambda mob, alpha: mob.set_value(20 * np.cos(alpha * 2 * PI)),
+                run_time=6
+            ), UpdateFromFunc(labela2, lambda m: m.become(MathTex("a = ", "{:.0f}".format(a2_parameter.get_value())).next_to(a2line, UP))),
+            UpdateFromAlphaFunc(
+                b2_parameter,
+                lambda mob, alpha: mob.set_value(-20 * np.cos(alpha * 2 * PI)),
+                run_time=6
+            ), UpdateFromFunc(labelb2, lambda m: m.become(MathTex("b = ", "{:.0f}".format(b2_parameter.get_value())).next_to(a2line, DOWN))),
+            UpdateFromAlphaFunc(
+                c_parameter,
+                lambda mob, alpha: mob.set_value(20 * np.sin(alpha * 2 * PI)),
+                run_time=6
+            ), UpdateFromFunc(labelc, lambda m: m.become(MathTex("c = ", "{:.0f}".format(c_parameter.get_value())).next_to(b2line, DOWN))),
+            UpdateFromAlphaFunc(
+                d_parameter,
+                lambda mob, alpha: mob.set_value(20 * np.cos(alpha * 2 * PI)),
+                run_time=6
+            ), UpdateFromFunc(labeld, lambda m: m.become(MathTex("d = ", "{:.0f}".format(d_parameter.get_value())).next_to(cline, DOWN))),
+
         )
-        self.wait()
+        self.wait(2)
 
-        data = get_data_1(self)
-        sample_count = 10
-        possible_outcomes = sample_count + 1
+        PDGH1 = MathTex("P(D|H_1)", "=", r"\frac{1}{41}\frac{1}{41}").next_to(PDGH, DOWN)
+        PDGH2 = MathTex("P(D|H_2)", "=", r"\frac{1}{41}\frac{1}{41}\frac{1}{41}\frac{1}{41}").next_to(PDGH1, DOWN)
+        PHGDR = MathTex(r"\frac{P(H_1|D)}{P(H_2|D)}", "=", "1681/1").next_to(PDGH2, 2*DOWN)
 
-        counter_num = 0
-        counter_number = (
-            Integer(counter_num).scale(0.5).next_to(sample_counter, RIGHT, buff=0.2)
-        )
-        counter_number.add_updater(lambda m: m.set_value(counter_num))
-
-        total_sum = 0
-        total_number = (
-            DecimalNumber(total_sum).scale(0.5).next_to(total_counter, RIGHT, buff=0.2)
-        )
-        total_number.add_updater(lambda m: m.set_value(total_sum))
-
-        average = 0
-        average_num = (
-            DecimalNumber(average).scale(0.5).next_to(average_counter, RIGHT, buff=0.2)
-        )
-        average_num.add_updater(lambda m: m.set_value(average))
-
-        self.add(counter_number, total_number, average_num)
-
-        sums = [0] * possible_outcomes  # This creates an array for possible totals /10
-
-        for s in range(15):
-            # THIS IS CALLING A RANDOM SAMPLE OF NUMBERS TO SELECT FROM
-            a = random.sample(range(0, 50), k=sample_count)
-
-            # THIS IS A GROUP FOR THE RESULTS BASED ON THE DATA
-            sample_results = VGroup()
-            boxes = VGroup()
-            for i, res in enumerate(a):
-                res = data[a[i]]
-                box = SurroundingRectangle(res)
-                sample_results.add(res)
-                boxes.add(box)
-
-            moved_result = sample_results.copy()
-
-            self.play(Create(boxes))
-            self.play(
-                moved_result.animate.arrange(RIGHT * 0.3, buff=0).to_edge(UP),
-                FadeOut(boxes),
-            )
-
-            # THIS ASSIGNS A VALUE FOR HOW MANY CORRECT WERE SELECTED FROM DATA
-            for i, value in enumerate(a):
-                if value < 20:
-                    a[i] = 1
-                else:
-                    a[i] = 0
-
-            prop = DecimalNumber(num_decimal_places=1)
-            tot = sum(a)
-            prop.set_value(tot / sample_count).set(height=0.2)
-            prop.next_to(moved_result, RIGHT, buff=0.3)
-
-            axes_box = SurroundingRectangle(
-                moved_result,
-                stroke_color=WHITE,
-                stroke_width=0.2,
-                fill_color=BLUE,
-                fill_opacity=0.8,
-                buff=0.1,
-            )
-            stack_in_axes = VGroup(axes_box, moved_result)
-
-            self.play(DrawBorderThenFill(axes_box))
-            self.play(Write(prop))
-
-            counter_num += 1
-
-            total_sum += tot / sample_count
-
-            average = (total_sum) / (counter_num)
-
-            self.play(
-                stack_in_axes.animate.next_to(x_axis_nums[tot], UP, buff=0)
-                .set(width=0.77)
-                .shift(UP * sums[tot]),
-                FadeOut(prop),
-            )
-
-            sums[tot] += stack_in_axes.get_height()
+        self.play(Write(PDGH1), Write(PDGH2))
+        self.play(Write(PHGDR))
 
         self.wait()
 
-        for s in range(85):
-            # THIS IS CALLING A RANDOM SAMPLE OF NUMBERS TO SELECT FROM
-            a = random.sample(range(0, 50), k=sample_count)
+class Slide24(Scene):
+    def construct(self):
+        pdfDGH = MathTex("P(D|H)")
+        pdfDGHE = MathTex("P(D|H)", "=" r"\int P(D|", r"\vec{w}", ",H)P(", r"\vec{w}", "|H)d", r"\vec{w}")
 
-            # THIS IS A GROUP FOR THE RESULTS BASED ON THE DATA
-            sample_results = VGroup()
-            boxes = VGroup()
-            for i, res in enumerate(a):
-                res = data[a[i]]
-                box = SurroundingRectangle(res)
-                sample_results.add(res)
-                boxes.add(box)
+        self.add(pdfDGH)
+        self.wait()
+        self.play(TransformMatchingTex(pdfDGH, pdfDGHE))
+        self.wait(2)
 
-            moved_result = sample_results.copy()
+        pdfDGHES = MathTex("P(D|H)", "=" r"\int P(D|", "w", ",H)P(", "w", "|H)d", "w")
+        self.play(TransformMatchingTex(pdfDGHE, pdfDGHES))
 
-            self.play(Create(boxes), run_time=0.1)
-            self.play(
-                moved_result.animate.arrange(RIGHT * 0.3, buff=0).to_edge(UP),
-                FadeOut(boxes),
-                run_time=0.1,
-            )
-
-            # THIS ASSIGNS A VALUE FOR HOW MANY CORRECT WERE SELECTED FROM DATA
-            for i, value in enumerate(a):
-                if value < 20:
-                    a[i] = 1
-                else:
-                    a[i] = 0
-
-            prop = DecimalNumber(num_decimal_places=1)
-            tot = sum(a)
-            prop.set_value(tot / sample_count).set(height=0.2)
-            prop.next_to(moved_result, RIGHT, buff=0.3)
-
-            axes_box = SurroundingRectangle(
-                moved_result,
-                stroke_color=WHITE,
-                stroke_width=0.2,
-                fill_color=BLUE,
-                fill_opacity=0.8,
-                buff=0.1,
-            )
-            stack_in_axes = VGroup(axes_box, moved_result)
-
-            self.add(axes_box, prop)
-            counter_num += 1
-            total_sum += tot / sample_count
-            average = (total_sum) / (counter_num)
-
-            self.play(
-                stack_in_axes.animate.next_to(x_axis_nums[tot], UP, buff=0)
-                .set(width=0.77)
-                .shift(UP * sums[tot]),
-                FadeOut(prop),
-                run_time=0.3,
-            )
-
-            sums[tot] += stack_in_axes.get_height()
         self.wait()
