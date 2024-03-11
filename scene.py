@@ -1,11 +1,5 @@
 from manim import *
-import random
 import numpy as np
-
-HOME = "C:\manim\Manim_7_July\Projects\\assets\Images"
-HOME2 = "C:\manim\Manim_7_July\Projects\\assets\SVG_Images"
-
-# This is for SVG Files to be imported. It is the directory from my PC
 
 class Slide2(Scene):
     def construct(self):
@@ -13,7 +7,8 @@ class Slide2(Scene):
         updatedsample1 = Square(4).set_fill(GREEN, opacity=0.5)
         updatedsample2 = Rectangle(width=2, height=4).set_fill(GREEN, opacity=0.5).shift(LEFT)
         updatedsample3 = Square(2).set_fill(GREEN, opacity=0.5).shift(UP+LEFT)
-        S = Square(4)
+        S = Rectangle(width=4.0, height=4.0, grid_xstep=2.0, grid_ystep=2)
+        S.stroke_opacity = 0.5
 
         texx = MathTex("x").shift(UP+LEFT)
         tex0 = Tex("0", " bits").shift((4*RIGHT))
@@ -136,6 +131,7 @@ class Slide4Suboptimal2(Scene):
         self.play(AnimationGroup(*split))
         self.wait()
 
+
 class Slide6(Scene):
     def construct(self):
         staticexpprob = MathTex("E", "(", "{}", "X", "{}", ") =", r"\sum_{x \in X}", "{}", "x", "P(x)")
@@ -144,6 +140,9 @@ class Slide6(Scene):
         entropy = MathTex("H", "(", "X", ") =", r"\sum_{x \in X}", "P(x)", "(", "-", "log_2P(x)", ")").shift(1.5*DOWN)
         staticexpinfo = MathTex("E", "(", "{I(}", "X", ")", ") =", r"\sum_{x \in X}", "I(", "x", ")", "P(x)")
         entropy2 = MathTex("H", "(", "X", ") =", "-", r"\sum_{x \in X}", "P(x)", "log_2P(x)").shift(1.5*DOWN)
+
+        en15 = MathTex("H", "(", "X", ") =", r"\sum_{x \in X}", "P(x)", "I(", "x", ")").shift(1.5*DOWN)
+
 
         self.add(expprob, staticexpprob)
         self.wait()
@@ -155,7 +154,8 @@ class Slide6(Scene):
         self.play(AnimationGroup(*animations))
         self.wait(2)
         self.add(staticexpinfo)
-        self.play(TransformMatchingTex(expinfo, entropy))
+        self.play(TransformMatchingTex(expinfo, en15))
+        self.play(TransformMatchingTex(en15, entropy))
         self.wait()
         self.play(TransformMatchingTex(entropy, entropy2))
         self.wait()
@@ -167,6 +167,7 @@ class Slide7(Scene):
         probveceq = MathTex("H(", r"\vec{p}", ") =", r"\sum_{p \in \vec{p}}", "p", "log(", "p", ")")
 
         self.add(originaleq)
+        self.wait(2)
         self.play(TransformMatchingTex(originaleq, probseq))
         self.wait()
         self.play(TransformMatchingTex(probseq, probveceq))
@@ -179,11 +180,13 @@ class Slide8Eq(Scene):
                         r"1-p \quad x > pivot\\"
                     r"\end{cases}")
         self.add(X.shift(2*UP))
+        originaleq = MathTex("H(X) = ", "-", r"\sum_{x \in X}", "P(x)", "log(", "P(x)", ")")
+        self.add(originaleq)
         staticX = X.copy()
         self.wait()
         H = MathTex("H(X) = ", "-", "p", "log_2", "p", "-", "(", "1-p", ")", "log_2", "(", "1-p", ")")
         self.add((staticX))
-        self.play(TransformMatchingShapes(X, H))
+        self.play(TransformMatchingTex(originaleq, H, shift=DOWN))
 
 
         self.wait()
@@ -423,25 +426,36 @@ class Slide20(Scene):
     def construct(self):
         sequence = [2, 4, 6]
 
+        axes = Axes(x_range=[0,5,1], y_range=[0,15,1], x_length=4, y_length=6, axis_config={"include_tip": True, "color": GREEN}).add_coordinates()
+        axes.align_on_border(RIGHT)
+        axis_labels = axes.get_axis_labels(x_label="x", y_label="f(x)")
+
         nummobs = VGroup()
         for i in range(len(sequence)):
-            nummobs.add(MathTex(sequence[i]).scale(2).shift((4-i)*LEFT))
+            nummobs.add(MathTex(sequence[i]).scale(2).shift((6-i)*LEFT))
 
-        self.play(Create(nummobs))
+        plot = axes.plot_line_graph([1,2,3], sequence)
+
+        self.play(Create(nummobs), DrawBorderThenFill(axes), Create(plot["vertex_dots"]), Write(axis_labels))
         self.wait()
 
-        qm = Tex("?").scale(2)
+        qm = Tex("?").scale(2).shift(LEFT*2)
         self.play(Create(qm))
         self.wait()
 
-        EIGHT = MathTex(8).scale(2)
-        eq1 = MathTex("f(x) =", "2", "x").shift(DOWN*2)
-        self.play(FadeOut(qm, shift=DOWN), FadeIn(EIGHT, shift=DOWN), FadeIn(eq1))
+        plot1 = axes.plot_line_graph([4], [8])
+        graph1 = axes.plot(lambda x: 2*x, x_range=[0, 4], color=ORANGE)
+        EIGHT = MathTex(8).scale(2).shift(LEFT*2)
+        eq1 = MathTex("f(x) =", "2", "x").shift(DOWN*2+LEFT*2)
+        self.play(FadeOut(qm, shift=DOWN), FadeIn(EIGHT, shift=DOWN), FadeIn(eq1), Create(VGroup(graph1, plot1["vertex_dots"])))
         self.wait(2)
+        self.play(Uncreate(VGroup(plot1["vertex_dots"], graph1)))
 
-        FOURTEEN = MathTex(14).scale(2)
-        eq2 = MathTex("f(x) =", "x^3-6x^2+13", "x", "-6").shift(DOWN*2)
-        self.play(FadeOut(EIGHT, shift=DOWN), FadeIn(FOURTEEN, shift=DOWN), TransformMatchingTex(eq1, eq2))
+        plot1 = axes.plot_line_graph([4], [14])
+        graph1 = axes.plot(lambda x: x**3-6*x**2+13*x-6, x_range=[0, 4], color=RED)
+        FOURTEEN = MathTex(14).scale(2).shift(LEFT*2)
+        eq2 = MathTex("f(x) =", "x^3-6x^2+13", "x", "-6").shift(DOWN*2+LEFT*2)
+        self.play(FadeOut(EIGHT, shift=DOWN), FadeIn(FOURTEEN, shift=DOWN), TransformMatchingTex(eq1, eq2), Create(VGroup(graph1, plot1["vertex_dots"])))
 
         self.wait()
 
@@ -627,3 +641,204 @@ class Slide24(Scene):
         self.play(TransformMatchingTex(pdfDGHE, pdfDGHES))
 
         self.wait()
+
+class Slide26(Scene):
+    def construct(self):
+        tryingtofind = Tex("What we're trying to find").scale(0.75).to_edge(UR)
+        ttfeq = MathTex("P(D|H)", "=", r"\int", "P(D|w,H)P(w|H)", "dw").scale(0.75).next_to(tryingtofind, DOWN).shift(LEFT).set_color_by_tex("P(D|w,H)P(w|H)", YELLOW).set_color_by_tex("P(D|H)", BLUE)
+        self.add(tryingtofind, Underline(tryingtofind), ttfeq)
+
+        PwGDH = MathTex("P(w|D,H)").set_color(RED).align_on_border(RIGHT).shift(UP)
+        PwGDHE = MathTex("P(w|D,H)", "=", r"\kappa", "P(D|w,H)P(w|H)").scale(0.75).set_color_by_tex("P(D|w,H)P(w|H)", YELLOW).set_color_by_tex("P(w|D,H)", RED).align_on_border(RIGHT).shift(UP)
+
+        self.add(PwGDH)
+        self.play(TransformMatchingTex(PwGDH, PwGDHE))
+        self.wait(2)
+
+        self.add(ttfeq.copy())
+        PDGHA = MathTex("P(D|H)", "=", r"\int", "P(w|D,H)", "dw").scale(0.75).set_color_by_tex("P(w|D,H)", RED).set_color_by_tex("P(D|H)", BLUE).align_on_border(RIGHT).shift(UP)
+        self.play(TransformMatchingTex(ttfeq, PDGHA), TransformMatchingTex(PwGDHE, PDGHA))
+        self.wait(2)
+
+        RPDGHAR = MathTex("P(D|H)", r"\approx", "P(D|w_{MP},H)", r"\times", "P(w_{MP}|H)", "\sigma_{w|D}").scale(0.75).set_color_by_tex("P(D|H)", BLUE).set_color_by_tex("P(D|w_{MP},H)", ORANGE).set_color_by_tex("P(w_{MP}|H)", GREY).set_color_by_tex(r"\sigma_{w|D}", GREY).align_on_border(RIGHT).shift(UP)
+        PDGHAR = MathTex("P(D|H)", r"\approx", "P(D|w_{MP},H)", r"\times", "P(w_{MP}|H)", "\sigma_{w|D}").scale(0.75).set_color_by_tex("P(D|H)", BLUE).set_color_by_tex("P(D|w_{MP},H)", ORANGE).set_color_by_tex("P(w_{MP}|H)", GREY).set_color_by_tex(r"\sigma_{w|D}", GREY).shift(2*RIGHT)
+        evidencebrace = Brace(PDGHAR[0])
+        evidencebracelabel = evidencebrace.get_text("Evidence").scale(0.7)
+        approx = MathTex(r"\approx").next_to(PDGHAR[1], DOWN).scale(0.7)
+        bflbrace = Brace(PDGHAR[2])
+        bflbracelabel = bflbrace.get_text("Best fit likelihood").scale(0.6)
+        times = MathTex(r"\times").next_to(PDGHAR[3], DOWN).scale(0.7)
+        occamfactor = Brace(PDGHAR[4:])
+        occamfactorlabel = occamfactor.get_text("Occam factor").scale(0.7)
+
+        self.play(TransformMatchingTex(PDGHA, RPDGHAR))
+        self.wait(2)
+        self.play(TransformMatchingTex(RPDGHAR, PDGHAR))
+        self.play(GrowFromCenter(evidencebrace), Write(evidencebracelabel))
+        self.play(FadeIn(approx))
+        self.play(GrowFromCenter(bflbrace), Write(bflbracelabel))
+        self.play(FadeIn(times))
+        self.play(GrowFromCenter(occamfactor), Write(occamfactorlabel))
+        self.wait(2)
+
+        PDGHARU = MathTex("P(D|H)", r"\approx", "P(D|w_{MP},H)", r"\times", r"\frac{1}{\sigma_w}", "\sigma_{w|D}").scale(0.75).set_color_by_tex("P(D|H)", BLUE).set_color_by_tex("P(D|w_{MP},H)", ORANGE).set_color_by_tex("\sigma_{w|D}", GREY).set_color_by_tex(r"\frac{1}{\sigma_w}", PINK).shift(2*RIGHT)
+        evidencebraceu = Brace(PDGHARU[0])
+        evidencebracelabelu = evidencebraceu.get_text("Evidence").scale(0.7)
+        approxu = MathTex(r"\approx").next_to(PDGHARU[1], DOWN).scale(0.7)
+        bflbraceu = Brace(PDGHARU[2])
+        bflbracelabelu = bflbraceu.get_text("Best fit likelihood").scale(0.6)
+        timesu = MathTex(r"\times").next_to(PDGHARU[3], DOWN).scale(0.7)
+        occamfactoru = Brace(PDGHARU[4:])
+        occamfactorlabelu = occamfactoru.get_text("Occam factor").scale(0.7)
+
+        self.play(TransformMatchingTex(PDGHAR, PDGHARU, shift=DOWN), Transform(VGroup(evidencebrace, evidencebracelabel, bflbrace, bflbracelabel, occamfactor, occamfactorlabel, approx, times), VGroup(evidencebraceu, evidencebracelabelu, bflbraceu, bflbracelabelu, occamfactoru, occamfactorlabelu, approxu, timesu)))
+        self.wait()
+
+        PDGHARUC = MathTex("P(D|H)", r"\approx", "P(D|w_{MP},H)", r"\times", r"\frac{\sigma_{w|D}}{\sigma_w}").scale(0.75).set_color_by_tex("P(D|H)", BLUE).set_color_by_tex("P(D|w_{MP},H)", ORANGE).set_color_by_tex(r"\frac{\sigma_{w|D}}{\sigma_w}", GREY).shift(2*RIGHT)
+        evidencebraceuc = Brace(PDGHARUC[0])
+        evidencebracelabeluc = evidencebraceuc.get_text("Evidence").scale(0.7)
+        approxuc = MathTex(r"\approx").next_to(PDGHARUC[1], DOWN).scale(0.7)
+        bflbraceuc = Brace(PDGHARUC[2])
+        bflbracelabeluc = bflbraceuc.get_text("Best fit likelihood").scale(0.55)
+        timesuc = MathTex(r"\times").next_to(PDGHARUC[3], DOWN).scale(0.7)
+        occamfactoruc = Brace(PDGHARUC[4:])
+        occamfactorlabeluc = occamfactoruc.get_text("Occam factor").scale(0.7)
+
+        self.play(TransformMatchingTex(PDGHARU, PDGHARUC, shift=DOWN), Transform(
+            VGroup(evidencebrace, evidencebracelabel, bflbrace, bflbracelabel, occamfactor, occamfactorlabel,
+                   approx, times),
+            VGroup(evidencebraceuc, evidencebracelabeluc, bflbraceuc, bflbracelabeluc, occamfactoruc, occamfactorlabeluc,
+                   approxuc, timesuc)
+        ))
+
+        self.wait()
+
+class Slide28(Scene):
+    def construct(self):
+        occamfactor = MathTex(r"\text{Occam factor}", "=", r"\frac{\sigma_{w|D}}{\sigma_w}")
+
+        self.add(occamfactor)
+        self.wait(2)
+
+        # a2
+        a2line = NumberLine(
+            x_range=[-20, 20],
+            length=3,
+            color=BLUE,
+            include_numbers=False, numbers_to_include=[-20, 20]).to_edge(LEFT).shift(2*UP)
+        a2_parameter = ValueTracker(2)
+        labela2 = MathTex("a = ", "{:.0f}".format(a2_parameter.get_value())).next_to(a2line, UP)
+        a2_marker = Dot(color=GREEN).add_updater(
+            lambda mob: mob.move_to(a2line.number_to_point(a2_parameter.get_value())), ).update()
+
+        # b2
+        b2_parameter = ValueTracker(3)
+        labelb2 = MathTex("b = ", "{:.0f}".format(b2_parameter.get_value())).next_to(a2line, DOWN)
+        b2line = NumberLine(
+            x_range=[-20, 20],
+            length=3,
+            color=BLUE,
+            include_numbers=False, numbers_to_include=[-20, 20]).next_to(labelb2, DOWN)
+
+        b2_marker = Dot(color=ORANGE).add_updater(
+            lambda mob: mob.move_to(b2line.number_to_point(b2_parameter.get_value())), ).update()
+
+        # c
+        c_parameter = ValueTracker(4)
+        labelc = MathTex("c = ", "{:.0f}".format(c_parameter.get_value())).next_to(b2line, DOWN)
+        cline = NumberLine(
+            x_range=[-20, 20],
+            length=3,
+            color=BLUE,
+            include_numbers=False, numbers_to_include=[-20, 20]).next_to(labelc, DOWN)
+
+        c_marker = Dot(color=PURPLE).add_updater(
+            lambda mob: mob.move_to(cline.number_to_point(c_parameter.get_value())), ).update()
+
+        # d
+        d_parameter = ValueTracker(5)
+        labeld = MathTex("d = ", "{:.0f}".format(d_parameter.get_value())).next_to(cline, DOWN)
+        dline = NumberLine(
+            x_range=[-20, 20],
+            length=3,
+            color=BLUE,
+            include_numbers=False, numbers_to_include=[-20, 20]).next_to(labeld, DOWN)
+
+        d_marker = Dot(color=PINK).add_updater(
+            lambda mob: mob.move_to(dline.number_to_point(d_parameter.get_value())), ).update()
+
+        paramtitle = Tex(r"Big $\sigma_w$").next_to(labela2, UP)
+
+        self.play(DrawBorderThenFill(VGroup(a2line, b2line, cline, dline)),
+                  Create(VGroup(a2_marker, b2_marker, c_marker, d_marker)), Write(paramtitle))
+        self.play(
+            UpdateFromAlphaFunc(
+                a2_parameter,
+                lambda mob, alpha: mob.set_value(20 * np.sin(alpha * 2 * PI)),
+                run_time=6
+            ),
+            UpdateFromFunc(labela2, lambda m: m.become(
+                MathTex("a = ", "{:.0f}".format(a2_parameter.get_value())).next_to(a2line, UP))),
+            UpdateFromAlphaFunc(
+                b2_parameter,
+                lambda mob, alpha: mob.set_value(-20 * np.cos(alpha * 2 * PI)),
+                run_time=6
+            ), UpdateFromFunc(labelb2, lambda m: m.become(
+                MathTex("b = ", "{:.0f}".format(b2_parameter.get_value())).next_to(a2line, DOWN))),
+            UpdateFromAlphaFunc(
+                c_parameter,
+                lambda mob, alpha: mob.set_value(20 * np.sin(alpha * 2 * PI)),
+                run_time=6
+            ), UpdateFromFunc(labelc, lambda m: m.become(
+                MathTex("c = ", "{:.0f}".format(c_parameter.get_value())).next_to(b2line, DOWN))),
+            UpdateFromAlphaFunc(
+                d_parameter,
+                lambda mob, alpha: mob.set_value(20 * np.cos(alpha * 2 * PI)),
+                run_time=6
+            ), UpdateFromFunc(labeld, lambda m: m.become(
+                MathTex("d = ", "{:.0f}".format(d_parameter.get_value())).next_to(cline, DOWN))),
+        )
+        self.wait(2)
+
+
+        axes = Axes(x_range=[0, 4, 1], y_range=[0, 4, 0.5], x_length=3, y_length=4, axis_config= {"include_tip": False, "color": GREEN}, color="Green").add_coordinates().to_edge(RIGHT)
+        axes_labels = axes.get_axis_labels(x_label="w", y_label="P(w|D,H)")
+
+        def H(x):
+            s = 0.1
+            m = 2.5
+            return (1/np.sqrt(2*np.pi*s**2)*np.exp(-(x-m)**2/(2*s**2)))
+
+        def U(x):
+            return 0.25
+
+        graph = axes.plot(H, x_range=[0, 4], color=RED)
+        #graph2 = axes.plot(U, x_range=[0, 4], color=BLUE)
+        graphtitle = Tex(r"Small $\sigma_{w|D}$").next_to(axes, UP).shift(0.5*UP)
+
+        self.play(DrawBorderThenFill(axes), Write(axes_labels), Write(graphtitle))#, Create(graph2))
+        self.play(ChangeSpeed(Create(graph), speedinfo={0: 0.5}))
+
+        self.wait(2)
+
+        self.play(FadeOut(VGroup(a2_marker, b2_marker, c_marker, d_marker, a2line, b2line, cline, dline, paramtitle, graphtitle, graph, axes, axes_labels, labela2, labelb2, labelc, labeld)))
+        self.wait()
+        logor = MathTex("log_2(", r"\frac{\sigma_{w|D}}{\sigma_w}", ")")
+        logorbrace = Brace(logor)
+        logorbracelabel = logorbrace.get_text("Information gained after getting data")
+        self.play(TransformMatchingTex(occamfactor, logor))
+        self.play(GrowFromCenter(logorbrace))
+        self.play(Write(logorbracelabel))
+
+
+        self.wait()
+
+class Slide12Revised(Scene):
+    def construct(self):
+        array = Rectangle(width=8, height=1, grid_xstep=1)
+        contents = VGroup()
+        items = [1, 2, 3, "...", 128, 420, 690, "..."]
+        for i in range(8):
+            contents.add(MathTex(items[i]).shift(LEFT*(3.5-i)))
+
+        self.add(array, contents)
